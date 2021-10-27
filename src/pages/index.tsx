@@ -1,11 +1,22 @@
+import { GetServerSideProps } from 'next'
+
 import Head from 'next/head'
 import { SubscribeButon } from '../components/SubscribeButton'
+import { stripe } from '../services/stripe'
 
 import styles from './home.module.scss'
 
-export default function Home() {
+interface HomeProps {
+  product: {
+    priceId: string;
+    amount: number;
+  }
+}
+
+export default function Home({product}: HomeProps) {
   return (
     <>
+   
       <Head>
         <title>Home | ig.news</title>
       </Head>
@@ -15,12 +26,34 @@ export default function Home() {
           <h1>News about the <br /> <span>React</span> world.</h1>
           <p>
             Get access to all the publications <br />
-            <span>for $9.90 month</span>
+            <span>for {product.amount} month</span>
+            
           </p>
-          <SubscribeButon />
+          <SubscribeButon priceId={product.priceId}/>
        </section>     
        <img src="/images/avatar.svg" alt="Gril coding" />
      </main>
     </>
   )
+}
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  const price = await stripe.prices.retrieve('price_1JozBZKjsbY4kSlh4BuKKqpZ', {
+    expand: ['product']
+  }) 
+
+  const product = {
+    priceId: price.id,
+    amount: new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(price.unit_amount / 100), // para salvar em centavos (evitando o trabalho com casas decimais)
+  };
+
+  return {
+    props: {
+      product
+    }
+  }
+
 }
